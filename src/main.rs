@@ -1,33 +1,29 @@
 extern crate riemann_client;
 extern crate sys_info; 
-extern crate libc;
 extern crate protobuf;
 
-
-use libc::timeval;
 use sys_info::*;
+use std::env;
 use riemann_client::Client;
 use riemann_client::proto::Event;
 use riemann_client::proto::Attribute;
-//use protobuf::repeated::RepeatedField;
-
+use std::{thread, time};
 
 fn main() {
  
- // boottime()
+ let ten_millis = time::Duration::from_millis(1000);
+ loop {
 
- let boottime = boottime();
+  //thread::sleep(ten_millis);
 
- let _time :timeval;
+// using boottime() function from sys_info
 
- let boottime = match boottime {
-     Ok(time) => time,
-     Err(error) => {
-         panic!("Problem detecting boottime : {:?} ", error)
-     },
- };
+ let boottime = boottime().unwrap();
 
+// att stands for attribute for boot time
 let mut att = Attribute::new();
+
+// att_vec is attribute vector to which all attributes are pushed.
 let mut att_vec :Vec<Attribute> = Vec::new();
 
 att.set_key("boottime".to_string());
@@ -35,33 +31,16 @@ att.set_value(boottime.tv_sec.to_string());
 att_vec.push(att);
 
 
-
-// disk_info()
-let disk_info = disk_info();
-
-let _diskinfo :DiskInfo ;
-
-let disk_info = match disk_info{
-     Ok(diskinfo) => diskinfo,
-     Err(error) => {
-         panic!("Problem detecting disk info : {:?} ", error)
-     },
- };
-
+// using function disk_info() from sys_info
+let disk_info = disk_info().unwrap();
 let mut disk_att = Attribute::new();
+
 disk_att.set_key("total disk".to_string());
 disk_att.set_value(disk_info.total.to_string());
 att_vec.push(disk_att);
 
-// memory 
-let mem_info = mem_info();
-let _meminfo :MemInfo;
-let mem_info = match mem_info {
-    Ok(meminfo) => meminfo,
-    Err(error) => {
-        panic!("Problem detecting mem info : {:?}", error)
-    },
-};
+// using function mem_info() from sys_info
+let mem_info = mem_info().unwrap();
 
 let mut mem_t_att = Attribute::new();
 mem_t_att.set_key("memory-total".to_string());
@@ -98,10 +77,7 @@ att_vec.push(mem_b_att);
 att_vec.push(mem_st_att);
 att_vec.push(mem_sf_att);
 
-
-
-// proc total
-
+// using function proc_total() from sys_info
 let proc_total = proc_total().unwrap();
 
 let mut proc_att = Attribute::new();
@@ -109,17 +85,29 @@ proc_att.set_key("proc-total".to_string());
 proc_att.set_value(proc_total.to_string());
 att_vec.push(proc_att);
 
-// load average
-
+// using function loadavg() from sys_info
 let load_avg = loadavg().unwrap();
+
 let mut load_att = Attribute::new();
 load_att.set_key("load-avg".to_string());
 load_att.set_value(load_avg.five.to_string());
 att_vec.push(load_att);
 
 
+// create client to connect to Riemann
+// let args: Vec<String> = env::args().collect();
 
-let mut client = Client::connect(&("localhost", 5555)).unwrap();
+// if args.len() != 2 {
+//     panic!("Kindly provide hostname and IP as commandline arguments.");
+// }
+// let mut hostname = args[1];
+// let port = args[2];
+// let mut address = hostname.push_str(&":");
+// let connection = address.push_str(port.to_string());
+//.push_str(port)).to_socket_addrs().unwrap();
+
+// println!("{}: {}: {}",  hostname, port,connection );
+let mut client = Client::connect(&("127.0.0.1", 5555)).unwrap();
 
 client.event({
     let mut event = Event::new();
@@ -130,6 +118,6 @@ client.event({
     event
 }).unwrap();
 
-
+ }
 
 }
