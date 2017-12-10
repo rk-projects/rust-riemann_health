@@ -6,5 +6,4 @@ authors = ["Raj Kiran Gade <rajkiran.gade@gmail.com>"]
 [dependencies]
 sys-info = "0.5.4"
 riemann_client = { path = "../rust-riemann_client"}
-libc = "0.2.34"
 protobuf = "1.4.3"
