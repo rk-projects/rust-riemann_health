@@ -1,6 +1,7 @@
 extern crate riemann_client;
 extern crate sys_info; 
 extern crate protobuf;
+extern crate getopts;
 
 use sys_info::*;
 use std::env;
@@ -8,17 +9,26 @@ use riemann_client::Client;
 use riemann_client::proto::Event;
 use riemann_client::proto::Attribute;
 use std::{thread, time};
+use getopts::Options;
+use std::net::{TcpStream, ToSocketAddrs};
+
+fn print_usage(program: &str, opts: Options) {
+    let brief = format!("Usage: {} FILE [options]", program);
+    print!("{}", opts.usage(&brief));
+    std::process::exit(0);
+}
+
 
 fn main() {
  
  let ten_millis = time::Duration::from_millis(1000);
  loop {
 
-  //thread::sleep(ten_millis);
+thread::sleep(ten_millis);
 
 // using boottime() function from sys_info
 
- let boottime = boottime().unwrap();
+let boottime = boottime().unwrap();
 
 // att stands for attribute for boot time
 let mut att = Attribute::new();
@@ -94,6 +104,25 @@ load_att.set_value(load_avg.five.to_string());
 att_vec.push(load_att);
 
 
+let args: Vec<String> = env::args().collect();
+     let program = args[0].clone();
+     let mut opts = Options::new();
+     opts.optopt("c", "connection", "connection string to riemann server", "connection");
+     opts.optflag("h", "help", "print help menu");
+     //opts.optopt("p", "port", "port of riemann server", "port");
+
+     let matches = match opts.parse(&args[1..]) {
+         Ok(m) => { m },
+         Err(error) => {
+             panic!("Unable to parse arguments {}", error.to_string());
+         },
+     };
+     if matches.opt_present("h") {
+         print_usage(&program, opts);
+     }
+     let hostname = matches.opt_str("c").unwrap();
+
+
 // create client to connect to Riemann
 // let args: Vec<String> = env::args().collect();
 
@@ -107,7 +136,7 @@ att_vec.push(load_att);
 //.push_str(port)).to_socket_addrs().unwrap();
 
 // println!("{}: {}: {}",  hostname, port,connection );
-let mut client = Client::connect(&("127.0.0.1", 5555)).unwrap();
+let mut client = Client::connect(&(&hostname.to_owned().to_string()[..])).unwrap();
 
 client.event({
     let mut event = Event::new();
