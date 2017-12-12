@@ -2,6 +2,9 @@
 name = "rust-riemann_health"
 version = "0.1.0"
 authors = ["Raj Kiran Gade <rajkiran.gade@gmail.com>"]
+description = "riemann_health implemented in rust"
+repository = "https://github.com/rk-projects/rust-riemann_health.git"
+readme = "README.md"
 
 [dependencies]
 sys-info = "0.5.4"
