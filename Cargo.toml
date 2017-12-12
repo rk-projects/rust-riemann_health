@@ -5,6 +5,7 @@ authors = ["Raj Kiran Gade <rajkiran.gade@gmail.com>"]
 description = "riemann_health implemented in rust"
 repository = "https://github.com/rk-projects/rust-riemann_health.git"
 readme = "README.md"
+license = "AGPL"
 
 [dependencies]
 sys-info = "0.5.4"
