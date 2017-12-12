@@ -12,16 +12,16 @@ use std::{thread, time};
 use getopts::Options;
 
 fn print_usage(program: &str, opts: Options) {
-    let brief = format!("Usage: {} FILE [options]", program);
+    let brief = format!("Usage: {} [options]", program);
     print!("{}", opts.usage(&brief));
-    std::process::exit(0);
+    std::process::exit(1);
 }
 
 fn main() {
-    let ten_millis = time::Duration::from_millis(1000);
+    let one_sec = time::Duration::from_millis(500);
     loop {
         // delay events by one second
-        thread::sleep(ten_millis);
+        thread::sleep(one_sec);
 
         // using boottime() function from sys_info
         let boottime = boottime().unwrap();
@@ -38,11 +38,16 @@ fn main() {
 
         // using function disk_info() from sys_info
         let disk_info = disk_info().unwrap();
-        let mut disk_att = Attribute::new();
+        let mut disk_total = Attribute::new();
 
-        disk_att.set_key("total disk".to_string());
-        disk_att.set_value(disk_info.total.to_string());
-        att_vec.push(disk_att);
+        disk_total.set_key("disk-total".to_string());
+        disk_total.set_value(disk_info.total.to_string());
+        att_vec.push(disk_total);
+
+        let mut disk_free = Attribute::new();
+        disk_free.set_key("disk-free".to_string());
+        disk_free.set_value(disk_info.free.to_string());
+        att_vec.push(disk_free);
 
         // using function mem_info() from sys_info
         let mem_info = mem_info().unwrap();
@@ -79,6 +84,7 @@ fn main() {
         att_vec.push(mem_f_att);
         att_vec.push(mem_a_att);
         att_vec.push(mem_b_att);
+        att_vec.push(mem_c_att);
         att_vec.push(mem_st_att);
         att_vec.push(mem_sf_att);
 
@@ -105,11 +111,10 @@ fn main() {
         opts.optopt(
             "c",
             "connection",
-            "connection string to riemann server",
+            "connection string to riemann server \n in the format <hostname>:<port>",
             "connection",
         );
         opts.optflag("h", "help", "print help menu");
-        //opts.optopt("p", "port", "port of riemann server", "port");
 
         let matches = match opts.parse(&args[1..]) {
             Ok(m) => m,
@@ -117,12 +122,14 @@ fn main() {
                 panic!("Unable to parse arguments {}", error.to_string());
             }
         };
-        if matches.opt_present("h") {
+        if matches.opt_present("h") && matches.opt_present("c") {
+            println!("Please pass either -c or -h and not both. Following is tbe help menu");
             print_usage(&program, opts);
         }
 
         if !matches.opt_present("c") {
             println!("Kindly provide connection string with -c <hostname>:<port>");
+            println!("Provide -h as argument to see the help menu");
             std::process::exit(2);
         }
         let hostname = matches.opt_str("c").unwrap();
@@ -134,8 +141,9 @@ fn main() {
                 let mut event = Event::new();
                 event.set_service("riemann-health".to_string());
                 event.set_state("OK".to_string());
+                event.set_description("riemann-health with several attributes".to_string());
                 event.set_attributes(protobuf::RepeatedField::from_vec(att_vec));
-                event.set_metric_d(boottime.tv_sec as f64);
+                event.set_metric_d(1.0);
                 event
             })
             .unwrap();
