@@ -18,10 +18,8 @@ fn print_usage(program: &str, opts: Options) {
 }
 
 fn main() {
-    let one_sec = time::Duration::from_millis(500);
+
     loop {
-        // delay events by one second
-        thread::sleep(one_sec);
 
         // using boottime() function from sys_info
         let boottime = boottime().unwrap();
@@ -102,39 +100,57 @@ fn main() {
         let mut load_att = Attribute::new();
         load_att.set_key("load-avg".to_string());
         load_att.set_value(load_avg.five.to_string());
-        att_vec.push(load_att);
-
+        att_vec.push(load_att); 
         let args: Vec<String> = env::args().collect();
 
         let program = args[0].clone();
         let mut opts = Options::new();
-        opts.optopt(
+        opts.optflagopt(
             "c",
             "connection",
-            "connection string to riemann server \n in the format <hostname>:<port>",
+            "connection string to riemann server \n in the format <hostname>:<port> . defaults to locahost:5555",
             "connection",
+        );
+        opts.optflagopt(
+            "d",
+            "delay",
+            "milliseconds of delay between events. defaults to 500ms.",
+            "delay",
         );
         opts.optflag("h", "help", "print help menu");
 
         let matches = match opts.parse(&args[1..]) {
             Ok(m) => m,
             Err(error) => {
-                panic!("Unable to parse arguments {}", error.to_string());
+                panic!("Unable to parse arguments {} \n Kindly provide appropriately. \n Use -h for help", error.to_string());
             }
         };
-        if matches.opt_present("h") && matches.opt_present("c") {
-            println!("Please pass either -c or -h and not both. Following is tbe help menu");
+        if matches.opt_present("h") {
+            println!("Following is tbe help menu: \n");
             print_usage(&program, opts);
         }
 
-        if !matches.opt_present("c") {
-            println!("Kindly provide connection string with -c <hostname>:<port>");
-            println!("Provide -h as argument to see the help menu");
-            std::process::exit(2);
-        }
-        let hostname = matches.opt_str("c").unwrap();
 
-        let mut client = Client::connect(&(&hostname.to_owned().to_string()[..])).unwrap();
+        let connection ;
+        if matches.opt_present("c") {
+            connection = matches.opt_default("c", "localhost:5555").unwrap();
+
+        }
+        else {
+            connection = String::from("localhost:5555");
+        }
+
+        let mut client = Client::connect(&(&connection.to_owned().to_string()[..])).unwrap();
+
+        // delay events by specified time. Default is 500ms
+        let delay;
+
+        if matches.opt_present("d") {
+            delay = time::Duration::from_millis(matches.opt_default("d", "500").unwrap().parse::<u64>().unwrap()) ;
+        }
+        else {
+            delay = time::Duration::from_millis(500);
+        }
 
         client
             .event({
@@ -147,5 +163,7 @@ fn main() {
                 event
             })
             .unwrap();
+
+        thread::sleep(delay);
     }
 }
